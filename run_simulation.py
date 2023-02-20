@@ -35,7 +35,7 @@ camera.position(6.5, 3.5, 5)
 camera.lookat(-1, -1.5, -3)
 scene.set_camera(camera)
 canvas.set_background_color((1, 1, 1))
-
+ps=particle_system.ParticleSystem(simulation_config)
 
 while window.running:
     camera.track_user_inputs(window, movement_speed=0.03, hold_key=ti.ui.LMB)
