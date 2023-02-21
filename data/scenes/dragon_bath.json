@@ -13,7 +13,8 @@
 		"exponent": 7,
 		"exportFrame": false,
 		"exportPly": false,
-		"exportObj": false
+		"exportObj": false,
+		"dt": 1e-4
 	},
 	"RigidBodies": [
 		{

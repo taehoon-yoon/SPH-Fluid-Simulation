@@ -315,14 +315,22 @@ class ParticleSystem:
                            density_arr, pressure_arr, material_arr, color_arr, is_dynamic_arr)
 
     @ti.func
-    def get_grid_idx_from_pos(self, position):
-        grid_idx = (position / self.grid_size).cast(ti.i32)  # floor operation
+    def pos2index(self, position):
+        return (position / self.grid_size).cast(ti.i32)
+
+    @ti.func
+    def flatten_grid_index(self, grid_idx):
         if self.dim == 3:
             flatten_grid_idx = grid_idx[0] * self.grid_num[1] * self.grid_num[2] + grid_idx[1] * self.grid_num[2] + \
                                grid_idx[2]
         else:
             flatten_grid_idx = grid_idx[0] * self.grid_num[1] + grid_idx[1]
         return flatten_grid_idx
+
+    @ti.func
+    def get_grid_idx_from_pos(self, position):
+        grid_idx = self.pos2index(position)  # floor operation
+        return self.flatten_grid_index(grid_idx)
 
     @ti.kernel
     def update_grid_id(self):
@@ -337,7 +345,8 @@ class ParticleSystem:
     def counting_sort(self):
         for i in range(self.total_particle_num):
             grid_idx = self.grid_id[i]
-            self.grid_id_for_sort[i] = ti.atomic_sub(self.counting_sort_accumulatedArray[grid_idx], 1) - 1
+            base_offset = 0 if grid_idx == 0 else self.counting_sort_accumulatedArray[grid_idx - 1]
+            self.grid_id_for_sort[i] = ti.atomic_sub(self.counting_sort_countArray[grid_idx], 1) + base_offset - 1
         for i in self.grid_id_for_sort:
             new_idx = self.grid_id_for_sort[i]
             self.grid_id_buffer[new_idx] = self.grid_id[i]
@@ -374,6 +383,18 @@ class ParticleSystem:
 
             self.color[i] = self.color_buffer[i]
             self.is_dynamic[i] = self.is_dynamic_buffer[i]
+
+    @ti.func
+    def for_all_neighbors(self, idx_i, task: ti.template(), ret: ti.template()):
+        center_cell_grid_idx = self.pos2index(self.position[idx_i])
+        for offset in ti.grouped(ti.ndrange(*(((-1, 2),) * self.dim))):
+            neighbor_grid_flatten_idx = self.flatten_grid_index(offset + center_cell_grid_idx)
+            start_idx = 0 if neighbor_grid_flatten_idx == 0 else self.counting_sort_accumulatedArray[
+                neighbor_grid_flatten_idx - 1]
+            # TODO: can we somewhat modify to enable using ti.static?
+            for idx_j in range(start_idx, self.counting_sort_accumulatedArray[neighbor_grid_flatten_idx]):
+                if idx_i[0] != idx_j and (self.position[idx_i] - self.position[idx_j]).norm() < self.support_length:
+                    task(idx_i, idx_j, ret)
 
     def update_particle_system(self):
         self.update_grid_id()
