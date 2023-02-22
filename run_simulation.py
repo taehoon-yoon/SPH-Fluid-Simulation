@@ -37,9 +37,15 @@ scene.set_camera(camera)
 canvas.set_background_color((1, 1, 1))
 
 ps = particle_system.ParticleSystem(simulation_config)
+solver = ps.build_solver()
+solver.initialize()
+substep = config['numberOfStepsPerRenderUpdate']
 
 draw_object_in_mesh = True
 while window.running:
+    for i in range(substep):
+        solver.step()
+
     camera.track_user_inputs(window, movement_speed=0.02, hold_key=ti.ui.LMB)
     if window.get_event(ti.ui.PRESS):
         if window.event.key == 'm':

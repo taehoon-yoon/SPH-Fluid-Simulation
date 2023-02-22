@@ -1,6 +1,7 @@
 import taichi as ti
 import numpy as np
 import trimesh as tm
+import WCSPH
 
 
 @ti.data_oriented
@@ -23,6 +24,7 @@ class ParticleSystem:
         self.particle_volume = (4 / 3) * np.pi * (self.particle_radius ** self.dim)
         self.support_length = 4 * self.particle_radius
         self.grid_size = self.support_length
+        self.padding = self.support_length  # padding is used for boundary condition when particle collide with wall
         self.grid_num = np.ceil(self.domain_size / self.grid_size).astype(np.int32)
         self.material_rigid = 0
         self.material_fluid = 1
@@ -79,7 +81,8 @@ class ParticleSystem:
             total_grid_num *= self.grid_num[i]
         self.counting_sort_countArray = ti.field(dtype=ti.i32, shape=total_grid_num)
         self.counting_sort_accumulatedArray = ti.field(dtype=ti.i32, shape=total_grid_num)
-        self.prefix_sum_executor = ti.algorithms.PrefixSumExecutor(total_grid_num)
+        self.prefix_sum_executor = ti.algorithms.PrefixSumExecutor(self.counting_sort_accumulatedArray.shape[0])
+        # Don't know why but ti.algorithms.PrefixSumExecutor(total_grid_num) is error.
 
         self.grid_id = ti.field(dtype=ti.i32, shape=self.total_particle_num)
         self.grid_id_buffer = ti.field(dtype=ti.i32, shape=self.total_particle_num)
@@ -320,6 +323,7 @@ class ParticleSystem:
 
     @ti.func
     def flatten_grid_index(self, grid_idx):
+        flatten_grid_idx = 0
         if self.dim == 3:
             flatten_grid_idx = grid_idx[0] * self.grid_num[1] * self.grid_num[2] + grid_idx[1] * self.grid_num[2] + \
                                grid_idx[2]
@@ -393,7 +397,7 @@ class ParticleSystem:
                 neighbor_grid_flatten_idx - 1]
             # TODO: can we somewhat modify to enable using ti.static?
             for idx_j in range(start_idx, self.counting_sort_accumulatedArray[neighbor_grid_flatten_idx]):
-                if idx_i[0] != idx_j and (self.position[idx_i] - self.position[idx_j]).norm() < self.support_length:
+                if idx_i != idx_j and (self.position[idx_i] - self.position[idx_j]).norm() < self.support_length:
                     task(idx_i, idx_j, ret)
 
     def update_particle_system(self):
@@ -403,8 +407,11 @@ class ParticleSystem:
 
     @ti.func
     def is_static_rigid_body(self, p):
-        return self.material[p] == self.material_solid and (not self.is_dynamic[p])
+        return self.material[p] == self.material_rigid and (not self.is_dynamic[p])
 
     @ti.func
     def is_dynamic_rigid_body(self, p):
-        return self.material[p] == self.material_solid and self.is_dynamic[p]
+        return self.material[p] == self.material_rigid and self.is_dynamic[p]
+
+    def build_solver(self):
+        return WCSPH.WCSPHSolver(self)
