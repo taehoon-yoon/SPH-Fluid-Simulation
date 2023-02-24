@@ -72,13 +72,22 @@ class WCSPHSolver(sph_base.SPHBase):
                     self.ps.particle_diameter)
 
         # Viscosity Force
-        d = 2 * (self.ps.dim + 2)
-        r = self.ps.position[p_i] - self.ps.position[p_j]
-        v_xy = (self.ps.velocity[p_i] - self.ps.velocity[p_j]).dot(r)
         if self.ps.material[p_j] == self.ps.material_fluid:
-            f_v = d * self.viscosity * (self.ps.mass[p_j] / (self.ps.density[p_j])) * v_xy / (
-                    r.norm() ** 2 + 0.01 * self.ps.support_length ** 2) * self.cubic_spline_kernel_derivative(r)
-            acc += f_v
+            nu = 2 * self.viscosity * self.ps.support_length * self.c_s / (self.ps.density[p_i] + self.ps.density[p_j])
+            v_ij = self.ps.velocity[p_i] - self.ps.velocity[p_j]
+            x_ij = self.ps.position[p_i] - self.ps.position[p_j]
+            pi = -nu * ti.min(v_ij.dot(x_ij), 0.0) / (x_ij.dot(x_ij) + 0.01 * self.ps.support_length ** 2)
+
+            acc -= self.ps.mass[p_j] * pi * self.cubic_spline_kernel_derivative(x_ij)
+
+        else:
+            sigma = 1.0
+            nu = sigma * self.ps.support_length * self.c_s / (2 * self.ps.density[p_i])
+            v_ij = self.ps.velocity[p_i] - self.ps.velocity[p_j]
+            x_ij = self.ps.position[p_i] - self.ps.position[p_j]
+            pi = -nu * ti.min(v_ij.dot(x_ij), 0.0) / (x_ij.dot(x_ij) + 0.01 * self.ps.support_length ** 2)
+
+            acc -= self.ps.density0 * self.ps.volume[p_j] * pi * self.cubic_spline_kernel_derivative(x_ij)
 
     @ti.kernel
     def compute_non_pressure_force(self):
