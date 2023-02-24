@@ -174,24 +174,6 @@ class ParticleSystem:
             particle_num *= len(np.arange(start[i], end[i], self.particle_diameter))
         return particle_num
 
-    """
-    @ti.kernel
-    def update_fluid_info(self):
-        # TODO: Is there some improved way to handle drawing only fluid particle?
-        color_tmp = ti.Vector.one(ti.f32, 4)
-        color_empty = ti.Vector.zero(ti.f32, 4)
-        position_empty = ti.Vector.zero(ti.f32, self.dim)
-        for i in range(self.total_particle_num):
-            if self.material[i] == self.material_fluid:
-                self.fluid_only_position[i] = self.position[i]
-                for j in ti.static(range(3)):
-                    color_tmp[j] = self.color[i][j]
-                self.fluid_only_color[i] = color_tmp
-            else:
-                self.fluid_only_position[i] = position_empty
-                self.fluid_only_color[i] = color_empty
-    """
-
     @ti.kernel
     def update_fluid_position_info(self):
         self.tmp_cnt[None] = 0
@@ -324,6 +306,7 @@ class ParticleSystem:
     @ti.func
     def flatten_grid_index(self, grid_idx):
         flatten_grid_idx = 0
+        # flatten_grid_idx = 0 We need this, if I omit it, taichi outputs error : Name "flatten_grid_idx" is not defined
         if self.dim == 3:
             flatten_grid_idx = grid_idx[0] * self.grid_num[1] * self.grid_num[2] + grid_idx[1] * self.grid_num[2] + \
                                grid_idx[2]

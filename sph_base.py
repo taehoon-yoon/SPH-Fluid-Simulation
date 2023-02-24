@@ -10,7 +10,7 @@ class SPHBase:
         self.dt = ti.field(ti.f32, shape=())
         self.dt[None] = self.ps.config['dt']
         self.collision_factor = self.ps.config['collisionFactor']
-        self.viscosity=self.ps.config['viscosity']
+        self.viscosity = self.ps.config['viscosity']
 
     @ti.func
     def cubic_spline_kernel(self, r_norm):
@@ -39,11 +39,11 @@ class SPHBase:
         h = self.ps.support_length
         coeff = 16 / np.pi if self.ps.dim == 3 else 80 / 7 / np.pi
         coeff /= (h ** (self.ps.dim + 1))
-        derivative = ti.Vector.zero(ti.f32, self.ps.dim)
+        derivative = ti.Vector([0.0 for _ in range(self.ps.dim)])
         r_norm = r.norm()
-        r_hat = r / (r_norm + 1e-6)
         q = r_norm / h
-        if q <= 1.0:
+        r_hat = ti.select(r_norm > 1e-7, r / r_norm, r / (r_norm + 1e-7))
+        if q <= 1.0:  # TODO: if q <= 1.0 and r_norm > 1e-7: -> taichi lang error. But can't figure out why it is error.
             if q <= 0.5:
                 derivative = coeff * (9 * q ** 2 - 6 * q) * r_hat
             else:
@@ -109,4 +109,3 @@ class SPHBase:
         self.ps.update_particle_system()
         self.substep()
         self.enforce_boundary_3D()
-

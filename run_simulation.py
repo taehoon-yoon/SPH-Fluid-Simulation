@@ -1,7 +1,6 @@
 import taichi as ti
 import json
 import particle_system
-import numpy as np
 
 ti.init(arch=ti.gpu)
 
