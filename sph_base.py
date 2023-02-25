@@ -17,7 +17,7 @@ class SPHBase:
     @ti.func
     def cubic_spline_kernel(self, r_norm):
         """
-        Smoothed Particle Hydrodynamics (3.31)
+        Smoothed Particle Hydrodynamics     eq (3.31)
         https://arxiv.org/abs/1007.1245v2
         """
         h = self.ps.support_length  # 4r
@@ -35,7 +35,7 @@ class SPHBase:
     @ti.func
     def cubic_spline_kernel_derivative(self, r):
         """
-        Smoothed Particle Hydrodynamics (3.33)
+        Smoothed Particle Hydrodynamics     eq (3.33)
         https://arxiv.org/abs/1007.1245v2
         """
         h = self.ps.support_length
@@ -60,8 +60,13 @@ class SPHBase:
     @ti.kernel
     def compute_volume_of_boundary_particle(self):
         """
-        Versatile Rigid-Fluid Coupling for Incompressible SPH (4)
+        Versatile Rigid-Fluid Coupling for Incompressible SPH     eq (4)
         https://cg.informatik.uni-freiburg.de/publications/2012_SIGGRAPH_rigidFluidCoupling.pdf
+        """
+        """
+        You can find the reason for using this kind of volume for boundary particle from the following paper.
+        Density Contrast SPH Interfaces
+        https://people.inf.ethz.ch/~sobarbar/papers/Sol08b/Sol08b.pdf
         """
         for i in range(self.ps.total_particle_num):
             if self.ps.is_static_rigid_body(i):

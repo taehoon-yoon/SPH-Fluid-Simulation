@@ -14,7 +14,7 @@
 		"exportFrame": false,
 		"exportPly": false,
 		"exportObj": false,
-		"dt": 4e-4,
+		"dt": 8e-4,
 		"collisionFactor": 0.5,
 		"viscosity": 0.01,
 		"c_s": 88.5
@@ -31,7 +31,7 @@
 			"density": 1000.0,
 			"color": [255, 255, 255], 
 			"isDynamic": false,
-			"sigma": 1
+			"sigma": 0.0008
 		}
 	],
 	"FluidBlocks": [

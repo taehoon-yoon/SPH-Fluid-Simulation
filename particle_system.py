@@ -56,6 +56,11 @@ class ParticleSystem:
         self.total_rigid_particle_num = 0
         self.mesh_vertices = []
         self.mesh_indices = []
+        self.rigid_bodies_sigma = ti.field(dtype=ti.f32,
+                                           shape=len(self.rigidBodiesConfig) + len(self.fluidBlocksConfig))
+        # Fluid part does not require sigma info.
+        # But to access it with object Id, we include fluid as well. Sigma of fluid is not used in program.
+        # Sigma is the viscosity coefficient between fluid and rigid
         for rigid_body in self.rigidBodiesConfig:
             voxelized_points = self.load_rigid_body(rigid_body)
             rigid_particle_num = voxelized_points.shape[0]
@@ -63,6 +68,7 @@ class ParticleSystem:
             rigid_body['voxelizedPoints'] = voxelized_points
             self.object_collection[rigid_body['objectId']] = rigid_body
             self.rigid_object_id.add(rigid_body['objectId'])
+            self.rigid_bodies_sigma[rigid_body['objectId']] = rigid_body['sigma']
             self.total_rigid_particle_num += rigid_particle_num
             print("* Object ID: {}         Rigid Body particle number: {}".format(rigid_body['objectId'],
                                                                                   rigid_particle_num))
