@@ -10,7 +10,8 @@ class SPHBase:
         self.dt = ti.field(ti.f32, shape=())
         self.dt[None] = self.ps.config['dt']
         self.collision_factor = self.ps.config['collisionFactor']
-        self.viscosity = self.ps.config['viscosity']
+        self.viscosity = ti.field(ti.f32, shape=())
+        self.viscosity[None] = self.ps.config['viscosity']
         self.c_s = self.ps.config['c_s']  # speed of the numerical propagation
         # [Versatile Rigid-Fluid Coupling for Incompressible SPH], between (11) and (12)
 

@@ -41,17 +41,38 @@ solver.initialize()
 substep = config['numberOfStepsPerRenderUpdate']
 
 draw_object_in_mesh = True
+gui = ti.ui.Gui(window.get_gui())
+
 while window.running:
     for i in range(substep):
         solver.step()
 
-    camera.track_user_inputs(window, movement_speed=0.02, hold_key=ti.ui.LMB)
+    camera.track_user_inputs(window, movement_speed=0.02, hold_key=ti.ui.RMB)
+    """
     if window.get_event(ti.ui.PRESS):
         if window.event.key == 'm':
             draw_object_in_mesh = not draw_object_in_mesh
         elif window.event.key == 'r':
             camera.position(6.5, 3.5, 5)
             camera.lookat(-1, -1.5, -3)
+        elif window.event.key == 'p':
+            ps.reset_particle_system()
+    """
+    gui.begin('Widget', 0, 0, 0.15, 1.0)
+    gui.text("SPH Particle System")
+    if gui.button('Reset Scene'):
+        ps.reset_particle_system()
+    if gui.button('Reset View'):
+        camera.position(6.5, 3.5, 5)
+        camera.lookat(-1, -1.5, -3)
+    draw_object_in_mesh = gui.checkbox('Draw object in mesh', draw_object_in_mesh)
+    gui.text('----------------------------')
+    gui.text('Euler step time interval')
+    solver.dt[None] = gui.slider_float('[10^-3]', solver.dt[None] * 1000, 0.2, 0.8) * 0.001
+    gui.text('Viscosity')
+    solver.viscosity[None] = gui.slider_float('', solver.viscosity[None], 0.001, 0.5)
+    gui.end()
+
     scene.set_camera(camera)
     scene.point_light((2, 2, 2), color=(1, 1, 1))
     scene.lines(box_vertex_point, width=3.0, indices=box_edge_index, color=(0, 0, 0))

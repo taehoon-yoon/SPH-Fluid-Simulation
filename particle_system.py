@@ -404,3 +404,42 @@ class ParticleSystem:
 
     def build_solver(self):
         return WCSPH.WCSPHSolver(self)
+
+    def reset_particle_system(self):
+        self.memory_allocated_particle_num[None] = 0
+        for fluid in self.fluidBlocksConfig:
+            offset = np.array(fluid['translation'])
+            start = np.array(fluid['start'])
+            end = np.array(fluid['end'])
+            color = fluid['color']
+            if type(color[0]) == int:
+                color = [c / 255.0 for c in color]
+            self.add_cube(object_id=fluid['objectId'],
+                          box_start=start + offset,
+                          box_end=end + offset,
+                          velocity=fluid['velocity'],
+                          density=fluid['density'],
+                          color=color,
+                          is_dynamic=1,
+                          material=self.material_fluid)
+
+        for rigid_body in self.rigidBodiesConfig:
+            rigid_body_particle_num = rigid_body['particleNum']
+            rigid_body_is_dynamic = 1 if rigid_body['isDynamic'] else 0
+            if rigid_body_is_dynamic:
+                velocity = np.tile(np.array(rigid_body['velocity'], dtype=np.float32), (rigid_body_particle_num, 1))
+            else:
+                velocity = np.full((rigid_body_particle_num, self.dim), 0.0, dtype=np.float32)
+            color = rigid_body['color']
+            if type(color[0]) == int:
+                color = [c / 255.0 for c in color]
+            density = rigid_body['density']
+            self.add_particles(object_id=rigid_body['objectId'],
+                               particle_num=rigid_body_particle_num,
+                               position=rigid_body['voxelizedPoints'],
+                               velocity=velocity,
+                               density=np.full((rigid_body_particle_num,), density, dtype=np.float32),
+                               pressure=np.full((rigid_body_particle_num,), 0.0, dtype=np.float32),
+                               material=np.full((rigid_body_particle_num,), self.material_rigid, dtype=np.int32),
+                               color=np.tile(np.array(color, dtype=np.float32), (rigid_body_particle_num, 1)),
+                               is_dynamic=np.full((rigid_body_particle_num,), rigid_body_is_dynamic, dtype=np.int32))

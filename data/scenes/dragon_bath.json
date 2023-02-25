@@ -14,7 +14,7 @@
 		"exportFrame": false,
 		"exportPly": false,
 		"exportObj": false,
-		"dt": 8e-4,
+		"dt": 4e-4,
 		"collisionFactor": 0.5,
 		"viscosity": 0.01,
 		"c_s": 88.5
