@@ -7,7 +7,8 @@ class WCSPHSolver(sph_base.SPHBase):
         super().__init__(particle_system)
         self.gamma = self.ps.config['gamma']
         self.B = self.ps.config['B']
-        self.surface_tension = 0.01
+        self.surface_tension = ti.field(ti.f32, shape=())
+        self.surface_tension[None] = self.ps.config['surfaceTension']
 
     @ti.func
     def update_density_task(self, p_i, p_j, density: ti.template()):
@@ -93,9 +94,9 @@ class WCSPHSolver(sph_base.SPHBase):
         # One thing to notice is that there should be extra term (x_a-x_b) in (16) check memo in the paper.
         if self.ps.material[p_j] == self.ps.material_fluid:
             r_vec = self.ps.position[p_i] - self.ps.position[p_j]
-            #if r_vec.norm() > self.ps.particle_diameter:
-            acc -= self.surface_tension / self.ps.mass[p_i] * self.ps.mass[p_j] * r_vec * self.cubic_spline_kernel(
-                r_vec.norm())
+            # if r_vec.norm() > self.ps.particle_diameter:
+            acc -= self.surface_tension[None] / self.ps.mass[p_i] * self.ps.mass[p_j] * r_vec * \
+                   self.cubic_spline_kernel(r_vec.norm())
             """
             else:
                 acc -= self.surface_tension / self.ps.mass[p_i] * self.ps.mass[p_j] * r_vec * self.cubic_spline_kernel(
@@ -105,7 +106,8 @@ class WCSPHSolver(sph_base.SPHBase):
         # Viscosity Force
         # Versatile Rigid-Fluid Coupling for Incompressible SPH  equation (11)~(14)
         if self.ps.material[p_j] == self.ps.material_fluid:
-            nu = 2 * self.viscosity[None] * self.ps.support_length * self.c_s / (self.ps.density[p_i] + self.ps.density[p_j])
+            nu = 2 * self.viscosity[None] * self.ps.support_length * self.c_s / (
+                    self.ps.density[p_i] + self.ps.density[p_j])
             v_ij = self.ps.velocity[p_i] - self.ps.velocity[p_j]
             x_ij = self.ps.position[p_i] - self.ps.position[p_j]
             pi = -nu * ti.min(v_ij.dot(x_ij), 0.0) / (x_ij.dot(x_ij) + 0.01 * self.ps.support_length ** 2)  # eq (11)

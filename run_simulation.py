@@ -71,6 +71,22 @@ while window.running:
     solver.dt[None] = gui.slider_float('[10^-3]', solver.dt[None] * 1000, 0.2, 0.8) * 0.001
     gui.text('Viscosity')
     solver.viscosity[None] = gui.slider_float('', solver.viscosity[None], 0.001, 0.5)
+    gui.text('Surface Tension')
+    solver.surface_tension[None] = gui.slider_float('[N/m]', solver.surface_tension[None], 0.001, 5)
+    if solver.viscosity[None] > 0.23 or solver.surface_tension[None] > 2.0:
+        # Viscosity with over 0.23 cause numerical instability when time step is larger than 0.0005 typically.
+        # Surface tension with over 2.0 cause numerical instability when time step is larger than 0.0005 typically.
+        solver.dt[None] = ti.min(solver.dt[None], 0.0005)
+    if solver.viscosity[None] > 0.23 and solver.surface_tension[None] > 2.0:
+        # Both in high viscosity and high surface tension, for numerical stability it is recommend to set 0.0004
+        solver.dt[None] = ti.min(solver.dt[None], 0.0004)
+    gui.text('----------------------------')
+    gui.text('# of Fluid Particles')
+    gui.text('{}'.format(ps.total_fluid_particle_num))
+    gui.text('# of Rigid Particles')
+    gui.text('{}'.format(ps.total_rigid_particle_num))
+    gui.text('Total # of Particles')
+    gui.text('{}'.format(ps.total_particle_num))
     gui.end()
 
     scene.set_camera(camera)
