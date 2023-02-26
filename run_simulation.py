@@ -1,6 +1,7 @@
 import taichi as ti
 import json
 import particle_system
+import numpy as np
 
 ti.init(arch=ti.gpu)
 
@@ -36,16 +37,25 @@ scene.set_camera(camera)
 canvas.set_background_color((1, 1, 1))
 
 ps = particle_system.ParticleSystem(simulation_config)
-solver = ps.build_solver()
-solver.initialize()
+ps.memory_allocation_and_initialization()
 substep = config['numberOfStepsPerRenderUpdate']
 
 draw_object_in_mesh = True
 gui = ti.ui.Gui(window.get_gui())
+start_step = False
+is_system_initialized = False
+current_fluid_domain_start = [np.array(fluid['start']) for fluid in ps.fluidBlocksConfig]
+current_fluid_domain_end = [np.array(fluid['end']) for fluid in ps.fluidBlocksConfig]
+fluid_box_num = len(current_fluid_domain_start)
+
+safe_boundary_start = ps.domain_start + np.array([ps.padding + ps.particle_radius])
+safe_boundary_end = ps.domain_end - np.array([ps.padding + ps.particle_radius])
+reallocate_memory_flag = False
 
 while window.running:
-    for i in range(substep):
-        solver.step()
+    if start_step:
+        for i in range(substep):
+            solver.step()
 
     camera.track_user_inputs(window, movement_speed=0.02, hold_key=ti.ui.RMB)
     """
@@ -60,26 +70,66 @@ while window.running:
     """
     gui.begin('Widget', 0, 0, 0.15, 1.0)
     gui.text("SPH Particle System")
-    if gui.button('Reset Scene'):
-        ps.reset_particle_system()
-    if gui.button('Reset View'):
-        camera.position(6.5, 3.5, 5)
-        camera.lookat(-1, -1.5, -3)
-    draw_object_in_mesh = gui.checkbox('Draw object in mesh', draw_object_in_mesh)
-    gui.text('----------------------------')
-    gui.text('Euler step time interval')
-    solver.dt[None] = gui.slider_float('[10^-3]', solver.dt[None] * 1000, 0.2, 0.8) * 0.001
-    gui.text('Viscosity')
-    solver.viscosity[None] = gui.slider_float('', solver.viscosity[None], 0.001, 0.5)
-    gui.text('Surface Tension')
-    solver.surface_tension[None] = gui.slider_float('[N/m]', solver.surface_tension[None], 0.001, 5)
-    if solver.viscosity[None] > 0.23 or solver.surface_tension[None] > 2.0:
-        # Viscosity with over 0.23 cause numerical instability when time step is larger than 0.0005 typically.
-        # Surface tension with over 2.0 cause numerical instability when time step is larger than 0.0005 typically.
-        solver.dt[None] = ti.min(solver.dt[None], 0.0005)
-    if solver.viscosity[None] > 0.23 and solver.surface_tension[None] > 2.0:
-        # Both in high viscosity and high surface tension, for numerical stability it is recommend to set 0.0004
-        solver.dt[None] = ti.min(solver.dt[None], 0.0004)
+    if not start_step:
+        if gui.button('Start'):
+            start_step = True
+            solver = ps.build_solver()
+            solver.initialize()
+        for idx in range(fluid_box_num):
+            gui.text('----------------------------')
+            gui.text('Fluid Box Number {}'.format(idx + 1))
+            gui.text('Fluid Block start point')
+            start_x = gui.slider_float('x0'.format(idx + 1), current_fluid_domain_start[idx][0],
+                                       safe_boundary_start[0], current_fluid_domain_end[idx][0] - ps.particle_diameter)
+            start_y = gui.slider_float('y0'.format(idx + 1), current_fluid_domain_start[idx][1],
+                                       safe_boundary_start[1], current_fluid_domain_end[idx][1] - ps.particle_diameter)
+            start_z = gui.slider_float('z0'.format(idx + 1), current_fluid_domain_start[idx][2],
+                                       safe_boundary_start[2], current_fluid_domain_end[idx][2] - ps.particle_diameter)
+            gui.text('')
+            gui.text('Fluid Block end point')
+            end_x = gui.slider_float('x1'.format(idx + 1), current_fluid_domain_end[idx][0],
+                                     current_fluid_domain_start[idx][0]+ps.particle_diameter, safe_boundary_end[0])
+            end_y = gui.slider_float('y1'.format(idx + 1), current_fluid_domain_end[idx][1],
+                                     current_fluid_domain_start[idx][1]+ps.particle_diameter, safe_boundary_end[1])
+            end_z = gui.slider_float('z1'.format(idx + 1), current_fluid_domain_end[idx][2],
+                                     current_fluid_domain_start[idx][2]+ps.particle_diameter, safe_boundary_end[2])
+            start = np.array([start_x, start_y, start_z]).round(2)
+            end = np.array([end_x, end_y, end_z]).round(2)
+            if (current_fluid_domain_start[idx] != start).any() or (current_fluid_domain_end[idx] != end).any():
+                reallocate_memory_flag = True
+                current_fluid_domain_start[idx]=start
+                current_fluid_domain_end[idx]=end
+
+        if reallocate_memory_flag:
+            del ps
+            ps=particle_system.ParticleSystem(simulation_config)
+            for idx in range(fluid_box_num):
+                ps.fluidBlocksConfig[idx]['start'] = current_fluid_domain_start[idx]
+                ps.fluidBlocksConfig[idx]['end'] = current_fluid_domain_end[idx]
+            ps.memory_allocation_and_initialization()
+            reallocate_memory_flag = False
+
+    else:
+        if gui.button('Reset Scene'):
+            ps.reset_particle_system()
+        if gui.button('Reset View'):
+            camera.position(6.5, 3.5, 5)
+            camera.lookat(-1, -1.5, -3)
+        draw_object_in_mesh = gui.checkbox('Draw object in mesh', draw_object_in_mesh)
+        gui.text('----------------------------')
+        gui.text('Euler step time interval')
+        solver.dt[None] = gui.slider_float('[10^-3]', solver.dt[None] * 1000, 0.2, 0.8) * 0.001
+        gui.text('Viscosity')
+        solver.viscosity[None] = gui.slider_float('', solver.viscosity[None], 0.001, 0.5)
+        gui.text('Surface Tension')
+        solver.surface_tension[None] = gui.slider_float('[N/m]', solver.surface_tension[None], 0.001, 5)
+        if solver.viscosity[None] > 0.23 or solver.surface_tension[None] > 2.0:
+            # Viscosity with over 0.23 cause numerical instability when time step is larger than 0.0005 typically.
+            # Surface tension with over 2.0 cause numerical instability when time step is larger than 0.0005 typically.
+            solver.dt[None] = ti.min(solver.dt[None], 0.0005)
+        if solver.viscosity[None] > 0.23 and solver.surface_tension[None] > 2.0:
+            # Both in high viscosity and high surface tension, for numerical stability it is recommend to set 0.0004
+            solver.dt[None] = ti.min(solver.dt[None], 0.0004)
     gui.text('----------------------------')
     gui.text('# of Fluid Particles')
     gui.text('{}'.format(ps.total_fluid_particle_num))
@@ -96,6 +146,8 @@ while window.running:
     if draw_object_in_mesh:
         ps.update_fluid_position_info()
         ps.update_fluid_color_info()
+        # print('pos: ', ps.fluid_only_position[10])
+        # print('color: ', ps.fluid_only_color[10])
         scene.particles(ps.fluid_only_position, radius=ps.particle_radius, per_vertex_color=ps.fluid_only_color)
         for i in range(len(ps.mesh_vertices)):
             scene.mesh(ps.mesh_vertices[i], ps.mesh_indices[i])

@@ -28,31 +28,24 @@ class ParticleSystem:
         self.grid_num = np.ceil(self.domain_size / self.grid_size).astype(np.int32)
         self.material_rigid = 0
         self.material_fluid = 1
-        self.object_collection = dict()
-        self.rigid_object_id = set()
         self.memory_allocated_particle_num = ti.field(dtype=ti.i32, shape=())
         self.memory_allocated_particle_num[None] = 0
 
+    def memory_allocation_and_initialization(self):
+        self.object_collection = dict()
+        self.rigid_object_id = set()
+        self.memory_allocated_particle_num[None] = 0
         # ========== Compute number of particles ==========#
         # === Process Fluid Blocks ===
-        print("\n=================================================================")
-        print("=                        Fluid Blocks                           =")
-        print("=================================================================")
         self.total_fluid_particle_num = 0
         for fluid in self.fluidBlocksConfig:
             fluid_particle_num = self.compute_fluid_particle_num(fluid['start'], fluid['end'])
             fluid['particleNum'] = fluid_particle_num
             self.object_collection[fluid['objectId']] = fluid
             self.total_fluid_particle_num += fluid_particle_num
-            print("* Object ID: {}         Fluid particle number: {}".format(fluid['objectId'], fluid_particle_num))
-            print("-----------------------------------------------------------------")
-        print("Total fluid particle number: {}".format(self.total_fluid_particle_num))
-        print("-----------------------------------------------------------------")
 
         # === Process Rigid Bodies ===
-        print("\n=================================================================")
-        print("=                        Rigid Bodies                           =")
-        print("=================================================================")
+
         self.total_rigid_particle_num = 0
         self.mesh_vertices = []
         self.mesh_indices = []
@@ -70,16 +63,9 @@ class ParticleSystem:
             self.rigid_object_id.add(rigid_body['objectId'])
             self.rigid_bodies_sigma[rigid_body['objectId']] = rigid_body['sigma']
             self.total_rigid_particle_num += rigid_particle_num
-            print("* Object ID: {}         Rigid Body particle number: {}".format(rigid_body['objectId'],
-                                                                                  rigid_particle_num))
-            print("-----------------------------------------------------------------")
-        print("Total rigid particle number: {}".format(self.total_rigid_particle_num))
-        print("-----------------------------------------------------------------")
 
         self.total_particle_num = self.total_rigid_particle_num + self.total_fluid_particle_num
-        print("\n=================================================================")
-        print("=                      Total Particle:   {}                 =".format(self.total_particle_num))
-        print("=================================================================")
+
         # ========== Allocate memory ==========#
         # Grid Related
         total_grid_num = 1
@@ -98,7 +84,6 @@ class ParticleSystem:
         self.object_id = ti.field(dtype=ti.i32, shape=self.total_particle_num)
 
         self.position = ti.Vector.field(self.dim, dtype=ti.f32, shape=self.total_particle_num)
-        self.position0 = ti.Vector.field(self.dim, dtype=ti.f32, shape=self.total_particle_num)
         self.velocity = ti.Vector.field(self.dim, dtype=ti.f32, shape=self.total_particle_num)
         self.acceleration = ti.Vector.field(self.dim, dtype=ti.f32, shape=self.total_particle_num)
 
@@ -115,7 +100,6 @@ class ParticleSystem:
         self.object_id_buffer = ti.field(dtype=ti.i32, shape=self.total_particle_num)
 
         self.position_buffer = ti.Vector.field(self.dim, dtype=ti.f32, shape=self.total_particle_num)
-        self.position0_buffer = ti.Vector.field(self.dim, dtype=ti.f32, shape=self.total_particle_num)
         self.velocity_buffer = ti.Vector.field(self.dim, dtype=ti.f32, shape=self.total_particle_num)
         self.acceleration_buffer = ti.Vector.field(self.dim, dtype=ti.f32, shape=self.total_particle_num)
 
@@ -173,6 +157,49 @@ class ParticleSystem:
                                material=np.full((rigid_body_particle_num,), self.material_rigid, dtype=np.int32),
                                color=np.tile(np.array(color, dtype=np.float32), (rigid_body_particle_num, 1)),
                                is_dynamic=np.full((rigid_body_particle_num,), rigid_body_is_dynamic, dtype=np.int32))
+
+    def free_memory_allocation(self):
+        del self.object_collection
+        del self.rigid_object_id
+        del self.mesh_vertices
+        del self.mesh_indices
+        del self.rigid_bodies_sigma
+
+        del self.counting_sort_countArray
+        del self.counting_sort_accumulatedArray
+        del self.prefix_sum_executor
+
+        del self.grid_id
+        del self.grid_id_buffer
+        del self.grid_id_for_sort
+
+        del self.object_id
+        del self.position
+        del self.velocity
+        del self.acceleration
+        del self.volume
+        del self.mass
+        del self.density
+        del self.pressure
+        del self.material
+        del self.color
+        del self.is_dynamic
+
+        del self.object_id_buffer
+        del self.position_buffer
+        del self.velocity_buffer
+        del self.acceleration_buffer
+        del self.volume_buffer
+        del self.mass_buffer
+        del self.density_buffer
+        del self.pressure_buffer
+        del self.material_buffer
+        del self.color_buffer
+        del self.is_dynamic_buffer
+
+        del self.fluid_only_color
+        del self.fluid_only_position
+        del self.tmp_cnt
 
     def compute_fluid_particle_num(self, start, end):
         particle_num = 1
@@ -252,7 +279,6 @@ class ParticleSystem:
                 col[dim_idx] = color[relative_idx, dim_idx]
             self.object_id[idx] = object_id
             self.position[idx] = pos
-            self.position0[idx] = pos
             self.velocity[idx] = vel
             self.acceleration[idx] = acc
 
@@ -346,7 +372,6 @@ class ParticleSystem:
 
             self.object_id_buffer[new_idx] = self.object_id[i]
             self.position_buffer[new_idx] = self.position[i]
-            self.position0_buffer[new_idx] = self.position0[i]
             self.velocity_buffer[new_idx] = self.velocity[i]
             self.acceleration_buffer[new_idx] = self.acceleration[i]
 
@@ -364,7 +389,6 @@ class ParticleSystem:
 
             self.object_id[i] = self.object_id_buffer[i]
             self.position[i] = self.position_buffer[i]
-            self.position0[i] = self.position0_buffer[i]
             self.velocity[i] = self.velocity_buffer[i]
             self.acceleration[i] = self.acceleration_buffer[i]
 
