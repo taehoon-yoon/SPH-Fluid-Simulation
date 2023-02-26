@@ -37,10 +37,10 @@ scene.set_camera(camera)
 canvas.set_background_color((1, 1, 1))
 
 ps = particle_system.ParticleSystem(simulation_config)
-ps.memory_allocation_and_initialization()
+ps.memory_allocation_and_initialization_only_position()
 substep = config['numberOfStepsPerRenderUpdate']
 
-draw_object_in_mesh = True
+draw_object_in_mesh = False
 gui = ti.ui.Gui(window.get_gui())
 start_step = False
 is_system_initialized = False
@@ -73,8 +73,10 @@ while window.running:
     if not start_step:
         if gui.button('Start'):
             start_step = True
+            ps.memory_allocation_and_initialization()
             solver = ps.build_solver()
             solver.initialize()
+            draw_object_in_mesh = True
         for idx in range(fluid_box_num):
             gui.text('----------------------------')
             gui.text('Fluid Box Number {}'.format(idx + 1))
@@ -88,28 +90,29 @@ while window.running:
             gui.text('')
             gui.text('Fluid Block end point')
             end_x = gui.slider_float('x1'.format(idx + 1), current_fluid_domain_end[idx][0],
-                                     current_fluid_domain_start[idx][0]+ps.particle_diameter, safe_boundary_end[0])
+                                     current_fluid_domain_start[idx][0] + ps.particle_diameter, safe_boundary_end[0])
             end_y = gui.slider_float('y1'.format(idx + 1), current_fluid_domain_end[idx][1],
-                                     current_fluid_domain_start[idx][1]+ps.particle_diameter, safe_boundary_end[1])
+                                     current_fluid_domain_start[idx][1] + ps.particle_diameter, safe_boundary_end[1])
             end_z = gui.slider_float('z1'.format(idx + 1), current_fluid_domain_end[idx][2],
-                                     current_fluid_domain_start[idx][2]+ps.particle_diameter, safe_boundary_end[2])
+                                     current_fluid_domain_start[idx][2] + ps.particle_diameter, safe_boundary_end[2])
             start = np.array([start_x, start_y, start_z]).round(2)
             end = np.array([end_x, end_y, end_z]).round(2)
             if (current_fluid_domain_start[idx] != start).any() or (current_fluid_domain_end[idx] != end).any():
                 reallocate_memory_flag = True
-                current_fluid_domain_start[idx]=start
-                current_fluid_domain_end[idx]=end
+                current_fluid_domain_start[idx] = start
+                current_fluid_domain_end[idx] = end
 
         if reallocate_memory_flag:
             del ps
-            ps=particle_system.ParticleSystem(simulation_config)
+            ps = particle_system.ParticleSystem(simulation_config)
             for idx in range(fluid_box_num):
                 ps.fluidBlocksConfig[idx]['start'] = current_fluid_domain_start[idx]
                 ps.fluidBlocksConfig[idx]['end'] = current_fluid_domain_end[idx]
-            ps.memory_allocation_and_initialization()
+            ps.memory_allocation_and_initialization_only_position()
             reallocate_memory_flag = False
 
     else:
+
         if gui.button('Reset Scene'):
             ps.reset_particle_system()
         if gui.button('Reset View'):
@@ -146,8 +149,6 @@ while window.running:
     if draw_object_in_mesh:
         ps.update_fluid_position_info()
         ps.update_fluid_color_info()
-        # print('pos: ', ps.fluid_only_position[10])
-        # print('color: ', ps.fluid_only_color[10])
         scene.particles(ps.fluid_only_position, radius=ps.particle_radius, per_vertex_color=ps.fluid_only_color)
         for i in range(len(ps.mesh_vertices)):
             scene.mesh(ps.mesh_vertices[i], ps.mesh_indices[i])

@@ -31,9 +31,7 @@ class ParticleSystem:
         self.memory_allocated_particle_num = ti.field(dtype=ti.i32, shape=())
         self.memory_allocated_particle_num[None] = 0
 
-    def memory_allocation_and_initialization(self):
-        self.object_collection = dict()
-        self.rigid_object_id = set()
+    def memory_allocation_and_initialization_only_position(self):
         self.memory_allocated_particle_num[None] = 0
         # ========== Compute number of particles ==========#
         # === Process Fluid Blocks ===
@@ -41,7 +39,6 @@ class ParticleSystem:
         for fluid in self.fluidBlocksConfig:
             fluid_particle_num = self.compute_fluid_particle_num(fluid['start'], fluid['end'])
             fluid['particleNum'] = fluid_particle_num
-            self.object_collection[fluid['objectId']] = fluid
             self.total_fluid_particle_num += fluid_particle_num
 
         # === Process Rigid Bodies ===
@@ -49,22 +46,64 @@ class ParticleSystem:
         self.total_rigid_particle_num = 0
         self.mesh_vertices = []
         self.mesh_indices = []
+
+        for rigid_body in self.rigidBodiesConfig:
+            voxelized_points = self.load_rigid_body(rigid_body)
+            rigid_particle_num = voxelized_points.shape[0]
+            rigid_body['particleNum'] = rigid_particle_num
+            rigid_body['voxelizedPoints'] = voxelized_points
+
+            self.total_rigid_particle_num += rigid_particle_num
+
+        self.total_particle_num = self.total_rigid_particle_num + self.total_fluid_particle_num
+
+        self.position = ti.Vector.field(self.dim, dtype=ti.f32, shape=self.total_particle_num)
+        self.color = ti.Vector.field(3, dtype=ti.f32, shape=self.total_particle_num)
+        self.material = ti.field(dtype=ti.i32, shape=self.total_particle_num)
+
+        # ========== Initialize particles ==========#
+
+        # Fluid block
+        for fluid in self.fluidBlocksConfig:
+            offset = np.array(fluid['translation'])
+            start = np.array(fluid['start'])
+            end = np.array(fluid['end'])
+            color = fluid['color']
+            if type(color[0]) == int:
+                color = [c / 255.0 for c in color]
+            self.add_cube(box_start=start + offset, box_end=end + offset, color=color, material=self.material_fluid)
+
+        # Rigid bodies
+        for rigid_body in self.rigidBodiesConfig:
+            rigid_body_particle_num = rigid_body['particleNum']
+            color = rigid_body['color']
+            if type(color[0]) == int:
+                color = [c / 255.0 for c in color]
+            self.add_particles_only_position(
+                particle_num=rigid_body_particle_num,
+                position=rigid_body['voxelizedPoints'],
+                material=np.full((rigid_body_particle_num,), self.material_rigid, dtype=np.int32),
+                color=np.tile(np.array(color, dtype=np.float32), (rigid_body_particle_num, 1)))
+
+    def memory_allocation_and_initialization(self):
+        self.memory_allocated_particle_num[None] = 0
+        self.object_collection = dict()
+        self.rigid_object_id = set()
+
+        # === Process Fluid Blocks ===
+        for fluid in self.fluidBlocksConfig:
+            self.object_collection[fluid['objectId']] = fluid
+
+        # === Process Rigid Bodies ===
         self.rigid_bodies_sigma = ti.field(dtype=ti.f32,
                                            shape=len(self.rigidBodiesConfig) + len(self.fluidBlocksConfig))
         # Fluid part does not require sigma info.
         # But to access it with object Id, we include fluid as well. Sigma of fluid is not used in program.
         # Sigma is the viscosity coefficient between fluid and rigid
         for rigid_body in self.rigidBodiesConfig:
-            voxelized_points = self.load_rigid_body(rigid_body)
-            rigid_particle_num = voxelized_points.shape[0]
-            rigid_body['particleNum'] = rigid_particle_num
-            rigid_body['voxelizedPoints'] = voxelized_points
             self.object_collection[rigid_body['objectId']] = rigid_body
             self.rigid_object_id.add(rigid_body['objectId'])
             self.rigid_bodies_sigma[rigid_body['objectId']] = rigid_body['sigma']
-            self.total_rigid_particle_num += rigid_particle_num
-
-        self.total_particle_num = self.total_rigid_particle_num + self.total_fluid_particle_num
 
         # ========== Allocate memory ==========#
         # Grid Related
@@ -83,7 +122,6 @@ class ParticleSystem:
         # Particle Related
         self.object_id = ti.field(dtype=ti.i32, shape=self.total_particle_num)
 
-        self.position = ti.Vector.field(self.dim, dtype=ti.f32, shape=self.total_particle_num)
         self.velocity = ti.Vector.field(self.dim, dtype=ti.f32, shape=self.total_particle_num)
         self.acceleration = ti.Vector.field(self.dim, dtype=ti.f32, shape=self.total_particle_num)
 
@@ -91,9 +129,7 @@ class ParticleSystem:
         self.mass = ti.field(dtype=ti.f32, shape=self.total_particle_num)
         self.density = ti.field(dtype=ti.f32, shape=self.total_particle_num)
         self.pressure = ti.field(dtype=ti.f32, shape=self.total_particle_num)
-        self.material = ti.field(dtype=ti.i32, shape=self.total_particle_num)
 
-        self.color = ti.Vector.field(3, dtype=ti.f32, shape=self.total_particle_num)
         self.is_dynamic = ti.field(dtype=ti.i32, shape=self.total_particle_num)
 
         # Buffer for sort
@@ -121,41 +157,32 @@ class ParticleSystem:
 
         # Fluid block
         for fluid in self.fluidBlocksConfig:
-            offset = np.array(fluid['translation'])
-            start = np.array(fluid['start'])
-            end = np.array(fluid['end'])
-            color = fluid['color']
-            if type(color[0]) == int:
-                color = [c / 255.0 for c in color]
-            self.add_cube(object_id=fluid['objectId'],
-                          box_start=start + offset,
-                          box_end=end + offset,
-                          velocity=fluid['velocity'],
-                          density=fluid['density'],
-                          color=color,
-                          is_dynamic=1,
-                          material=self.material_fluid)
+            fluid_particle_num = fluid['particleNum']
+            velocity = np.tile(np.array(fluid['velocity'], dtype=np.float32), (fluid_particle_num, 1))
+            density = fluid['density']
+            self.add_particles(object_id=fluid['objectId'],
+                               particle_num=fluid_particle_num,
+                               velocity=velocity,
+                               density=np.full((fluid_particle_num,), density, dtype=np.float32),
+                               pressure=np.full((fluid_particle_num,), 0.0, dtype=np.float32),
+                               is_dynamic=np.full((fluid_particle_num,), 1, dtype=np.int32))
+
 
         # Rigid bodies
         for rigid_body in self.rigidBodiesConfig:
+
             rigid_body_particle_num = rigid_body['particleNum']
             rigid_body_is_dynamic = 1 if rigid_body['isDynamic'] else 0
             if rigid_body_is_dynamic:
                 velocity = np.tile(np.array(rigid_body['velocity'], dtype=np.float32), (rigid_body_particle_num, 1))
             else:
                 velocity = np.full((rigid_body_particle_num, self.dim), 0.0, dtype=np.float32)
-            color = rigid_body['color']
-            if type(color[0]) == int:
-                color = [c / 255.0 for c in color]
             density = rigid_body['density']
             self.add_particles(object_id=rigid_body['objectId'],
                                particle_num=rigid_body_particle_num,
-                               position=rigid_body['voxelizedPoints'],
                                velocity=velocity,
                                density=np.full((rigid_body_particle_num,), density, dtype=np.float32),
                                pressure=np.full((rigid_body_particle_num,), 0.0, dtype=np.float32),
-                               material=np.full((rigid_body_particle_num,), self.material_rigid, dtype=np.int32),
-                               color=np.tile(np.array(color, dtype=np.float32), (rigid_body_particle_num, 1)),
                                is_dynamic=np.full((rigid_body_particle_num,), rigid_body_is_dynamic, dtype=np.int32))
 
     def free_memory_allocation(self):
@@ -255,30 +282,41 @@ class ParticleSystem:
         return voxelized_mesh.points.astype(np.float32)
 
     @ti.kernel
-    def add_particles(self,
-                      object_id: int,
-                      particle_num: int,
-                      position: ti.types.ndarray(),
-                      velocity: ti.types.ndarray(),
-                      density: ti.types.ndarray(),
-                      pressure: ti.types.ndarray(),
-                      material: ti.types.ndarray(),
-                      color: ti.types.ndarray(),
-                      is_dynamic: ti.types.ndarray()):
+    def add_particles_only_position(self,
+                                    particle_num: int,
+                                    position: ti.types.ndarray(),
+                                    material: ti.types.ndarray(),
+                                    color: ti.types.ndarray()):
         for idx in range(self.memory_allocated_particle_num[None],
                          self.memory_allocated_particle_num[None] + particle_num):
             relative_idx = idx - self.memory_allocated_particle_num[None]
             pos = ti.Vector.zero(ti.f32, self.dim)
-            vel = ti.Vector.zero(ti.f32, self.dim)
-            acc = ti.Vector.zero(ti.f32, self.dim)
             col = ti.Vector([0.0, 0.0, 0.0])
             for dim_idx in ti.static(range(self.dim)):
                 pos[dim_idx] = position[relative_idx, dim_idx]
-                vel[dim_idx] = velocity[relative_idx, dim_idx]
             for dim_idx in ti.static(range(3)):
                 col[dim_idx] = color[relative_idx, dim_idx]
-            self.object_id[idx] = object_id
             self.position[idx] = pos
+            self.material[idx] = material[relative_idx]
+            self.color[idx] = col
+        self.memory_allocated_particle_num[None] += particle_num
+
+    @ti.kernel
+    def add_particles(self,
+                      object_id: int,
+                      particle_num: int,
+                      velocity: ti.types.ndarray(),
+                      density: ti.types.ndarray(),
+                      pressure: ti.types.ndarray(),
+                      is_dynamic: ti.types.ndarray()):
+        for idx in range(self.memory_allocated_particle_num[None],
+                         self.memory_allocated_particle_num[None] + particle_num):
+            relative_idx = idx - self.memory_allocated_particle_num[None]
+            vel = ti.Vector.zero(ti.f32, self.dim)
+            acc = ti.Vector.zero(ti.f32, self.dim)
+            for dim_idx in ti.static(range(self.dim)):
+                vel[dim_idx] = velocity[relative_idx, dim_idx]
+            self.object_id[idx] = object_id
             self.velocity[idx] = vel
             self.acceleration[idx] = acc
 
@@ -286,20 +324,15 @@ class ParticleSystem:
             self.density[idx] = density[relative_idx]
             self.mass[idx] = self.volume[idx] * self.density[idx]
             self.pressure[idx] = pressure[relative_idx]
-            self.material[idx] = material[relative_idx]
-
-            self.color[idx] = col
             self.is_dynamic[idx] = is_dynamic[relative_idx]
-
         self.memory_allocated_particle_num[None] += particle_num
 
-    def add_cube(self, object_id, box_start, box_end, velocity, density, color, is_dynamic, material, pressure=0):
+    def add_cube(self, box_start, box_end, color, material):
         dim_array = []
         total_cube_particle_num = 1
         for i in range(self.dim):
             dim_array.append(np.arange(box_start[i], box_end[i], self.particle_diameter))
             total_cube_particle_num *= len(dim_array[i])
-        assert total_cube_particle_num == self.object_collection[object_id]['particleNum']
         position_arr = np.array(np.meshgrid(*dim_array, indexing='ij'), dtype=np.float32)
         # (3, len(dim_array[0]), len(dim_array[1]), len(dim_array[2]))
 
@@ -322,14 +355,9 @@ class ParticleSystem:
         [x_end, y_end, z_end]
         ]
         """
-        velocity_arr = np.tile(np.array(velocity, dtype=np.float32), (total_cube_particle_num, 1))
-        density_arr = np.full((total_cube_particle_num,), density, dtype=np.float32)
-        is_dynamic_arr = np.full((total_cube_particle_num,), is_dynamic, dtype=np.int32)
         material_arr = np.full((total_cube_particle_num,), material, dtype=np.int32)
         color_arr = np.tile(np.array(color, dtype=np.float32), (total_cube_particle_num, 1))
-        pressure_arr = np.full((total_cube_particle_num,), pressure, dtype=np.float32)
-        self.add_particles(object_id, total_cube_particle_num, position_arr, velocity_arr,
-                           density_arr, pressure_arr, material_arr, color_arr, is_dynamic_arr)
+        self.add_particles_only_position(total_cube_particle_num, position_arr, material_arr, color_arr)
 
     @ti.func
     def pos2index(self, position):
@@ -438,32 +466,41 @@ class ParticleSystem:
             color = fluid['color']
             if type(color[0]) == int:
                 color = [c / 255.0 for c in color]
-            self.add_cube(object_id=fluid['objectId'],
-                          box_start=start + offset,
-                          box_end=end + offset,
-                          velocity=fluid['velocity'],
-                          density=fluid['density'],
-                          color=color,
-                          is_dynamic=1,
-                          material=self.material_fluid)
+            self.add_cube(box_start=start + offset, box_end=end + offset, color=color, material=self.material_fluid)
 
         for rigid_body in self.rigidBodiesConfig:
             rigid_body_particle_num = rigid_body['particleNum']
+            color = rigid_body['color']
+            if type(color[0]) == int:
+                color = [c / 255.0 for c in color]
+            density = rigid_body['density']
+            self.add_particles_only_position(
+                particle_num=rigid_body_particle_num,
+                position=rigid_body['voxelizedPoints'],
+                material=np.full((rigid_body_particle_num,), self.material_rigid, dtype=np.int32),
+                color=np.tile(np.array(color, dtype=np.float32), (rigid_body_particle_num, 1)))
+
+        self.memory_allocated_particle_num[None] = 0
+        for fluid in self.fluidBlocksConfig:
+            fluid_particle_num = fluid['particleNum']
+            velocity = np.tile(np.array(fluid['velocity'], dtype=np.float32), (fluid_particle_num, 1))
+            density = fluid['density']
+            self.add_particles(object_id=fluid['objectId'],
+                               particle_num=fluid_particle_num,
+                               velocity=velocity,
+                               density=np.full((fluid_particle_num,), density, dtype=np.float32),
+                               pressure=np.full((fluid_particle_num,), 0.0, dtype=np.float32),
+                               is_dynamic=np.full((fluid_particle_num,), 1, dtype=np.int32))
+
+        for rigid_body in self.rigidBodiesConfig:
             rigid_body_is_dynamic = 1 if rigid_body['isDynamic'] else 0
             if rigid_body_is_dynamic:
                 velocity = np.tile(np.array(rigid_body['velocity'], dtype=np.float32), (rigid_body_particle_num, 1))
             else:
                 velocity = np.full((rigid_body_particle_num, self.dim), 0.0, dtype=np.float32)
-            color = rigid_body['color']
-            if type(color[0]) == int:
-                color = [c / 255.0 for c in color]
-            density = rigid_body['density']
             self.add_particles(object_id=rigid_body['objectId'],
                                particle_num=rigid_body_particle_num,
-                               position=rigid_body['voxelizedPoints'],
                                velocity=velocity,
                                density=np.full((rigid_body_particle_num,), density, dtype=np.float32),
                                pressure=np.full((rigid_body_particle_num,), 0.0, dtype=np.float32),
-                               material=np.full((rigid_body_particle_num,), self.material_rigid, dtype=np.int32),
-                               color=np.tile(np.array(color, dtype=np.float32), (rigid_body_particle_num, 1)),
                                is_dynamic=np.full((rigid_body_particle_num,), rigid_body_is_dynamic, dtype=np.int32))
