@@ -2,5 +2,6 @@
 imgui.ini
 __pycache__/
 tmp.py
-Dragon*
-basic*
+*/
+!data/
+!image/

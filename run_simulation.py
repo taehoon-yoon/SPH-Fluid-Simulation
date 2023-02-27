@@ -63,6 +63,7 @@ cnt = 0
 cnt_ply = 0
 series_prefix = "{}_output/particle_object_{}.ply".format(scene_name, "{}")
 enter_second_phase_first_time = True
+reset_scene_flag = False
 
 while window.running:
     if start_step:
@@ -154,6 +155,7 @@ while window.running:
     else:
         if gui.button('Reset Scene'):
             ps.reset_particle_system()
+            reset_scene_flag = True
         if gui.button('Reset View'):
             camera.position(6.5, 3.5, 5)
             camera.lookat(-1, -1.5, -3)
@@ -195,6 +197,10 @@ while window.running:
         scene.particles(ps.position, radius=ps.particle_radius, per_vertex_color=ps.color)
     canvas.scene(scene)
     if start_step:
+        if reset_scene_flag:
+            cnt = 0
+            cnt_ply = 0
+            reset_scene_flag = False
         if enter_second_phase_first_time:
             if output_frames:
                 os.makedirs(f"{scene_name}_output_img", exist_ok=True)  # output image
