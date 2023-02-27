@@ -152,12 +152,6 @@ while window.running:
         output_ply = gui.checkbox('Output [.ply] files', output_ply)
         gui.end()
     else:
-        if enter_second_phase_first_time:
-            if output_frames:
-                os.makedirs(f"{scene_name}_output_img", exist_ok=True)  # output image
-            if output_ply:
-                os.makedirs(f"{scene_name}_output", exist_ok=True)
-            enter_second_phase_first_time = False
         if gui.button('Reset Scene'):
             ps.reset_particle_system()
         if gui.button('Reset View'):
@@ -201,6 +195,13 @@ while window.running:
         scene.particles(ps.position, radius=ps.particle_radius, per_vertex_color=ps.color)
     canvas.scene(scene)
     if start_step:
+        if enter_second_phase_first_time:
+            if output_frames:
+                os.makedirs(f"{scene_name}_output_img", exist_ok=True)  # output image
+            if output_ply:
+                os.makedirs(f"{scene_name}_output", exist_ok=True)
+            enter_second_phase_first_time = False
+
         if cnt % output_interval == 0:
             if output_ply:
                 ps.update_fluid_position_info()

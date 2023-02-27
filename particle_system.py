@@ -29,7 +29,7 @@ class ParticleSystem:
         self.material_fluid = 1
         self.memory_allocated_particle_num = ti.field(dtype=ti.i32, shape=())
         self.memory_allocated_particle_num[None] = 0
-        self.cur_obj_id=0
+        self.cur_obj_id = 0
 
     def memory_allocation_and_initialization_only_position(self):
         self.memory_allocated_particle_num[None] = 0
@@ -40,7 +40,7 @@ class ParticleSystem:
             fluid_particle_num = self.compute_fluid_particle_num(fluid['start'], fluid['end'])
             fluid['particleNum'] = fluid_particle_num
             self.total_fluid_particle_num += fluid_particle_num
-            self.cur_obj_id=ti.max(self.cur_obj_id,fluid['objectId'])
+            self.cur_obj_id = ti.max(self.cur_obj_id, fluid['objectId'])
 
         # === Process Rigid Bodies ===
 
@@ -169,7 +169,6 @@ class ParticleSystem:
                                pressure=np.full((fluid_particle_num,), 0.0, dtype=np.float32),
                                is_dynamic=np.full((fluid_particle_num,), 1, dtype=np.int32))
 
-
         # Rigid bodies
         for rigid_body in self.rigidBodiesConfig:
 
@@ -279,7 +278,8 @@ class ParticleSystem:
         rot_matrix = tm.transformations.rotation_matrix(rotation_angle, rotation_axis, mesh.vertices.mean(axis=0))
         mesh.apply_transform(rot_matrix)
         mesh.vertices += offset
-        self.get_mesh_info(mesh.copy())
+        rigid_body['mesh'] = mesh.copy()
+        self.get_mesh_info(mesh)
         voxelized_mesh = mesh.voxelized(pitch=self.particle_diameter).fill()
         return voxelized_mesh.points.astype(np.float32)
 
