@@ -11,7 +11,6 @@ class ParticleSystem:
         self.config = self.simulation_config['Configuration']
         self.rigidBodiesConfig = self.simulation_config['RigidBodies']  # list
         self.fluidBlocksConfig = self.simulation_config['FluidBlocks']  # list
-
         self.domain_start = np.array(self.config['domainStart'])
         self.domain_end = np.array(self.config['domainEnd'])
         self.particle_radius = self.config['particleRadius']
@@ -30,6 +29,7 @@ class ParticleSystem:
         self.material_fluid = 1
         self.memory_allocated_particle_num = ti.field(dtype=ti.i32, shape=())
         self.memory_allocated_particle_num[None] = 0
+        self.cur_obj_id=0
 
     def memory_allocation_and_initialization_only_position(self):
         self.memory_allocated_particle_num[None] = 0
@@ -40,6 +40,7 @@ class ParticleSystem:
             fluid_particle_num = self.compute_fluid_particle_num(fluid['start'], fluid['end'])
             fluid['particleNum'] = fluid_particle_num
             self.total_fluid_particle_num += fluid_particle_num
+            self.cur_obj_id=ti.max(self.cur_obj_id,fluid['objectId'])
 
         # === Process Rigid Bodies ===
 
@@ -54,6 +55,7 @@ class ParticleSystem:
             rigid_body['voxelizedPoints'] = voxelized_points
 
             self.total_rigid_particle_num += rigid_particle_num
+            self.cur_obj_id = ti.max(self.cur_obj_id, rigid_body['objectId'])
 
         self.total_particle_num = self.total_rigid_particle_num + self.total_fluid_particle_num
 
@@ -504,3 +506,6 @@ class ParticleSystem:
                                density=np.full((rigid_body_particle_num,), density, dtype=np.float32),
                                pressure=np.full((rigid_body_particle_num,), 0.0, dtype=np.float32),
                                is_dynamic=np.full((rigid_body_particle_num,), rigid_body_is_dynamic, dtype=np.int32))
+
+    def dump(self):
+        return self.fluid_only_position.to_numpy()
