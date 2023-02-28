@@ -6,3 +6,5 @@ tmp.py
 !data/
 !image/
 !png/
+!models/
+!scenes/
