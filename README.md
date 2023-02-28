@@ -27,8 +27,9 @@ This is the phase where you can edit the SPH particle system. For example, you c
 [Fig3. Axis description]
 
 <img src="./image/png/side-view.png" height="300">
-[Fig4. `(x0, y0, z0)` and `(x1, y1, z1)`]
+[Fig4. (x0, y0, z0) and (x1, y1, z1)]
 
+- - -
 
 - Widget Option Description
 
@@ -47,3 +48,13 @@ This is the phase where you can edit the SPH particle system. For example, you c
 ### :warning: WARNING :warning: : Due to GPU memory problem, when you want to change the value of `(x0, y0, z0)` and `(x1, y1, z1)` you must **click** the point you want that value to be located not sliding the bar. Please consult the following gif.
 
 <img src="./image/phase1-manual.gif">
+
+`# of Fluid Particles, # of Rigid Particles, Total # of Particles` : Giving you information about how many particles are there in current setting. By default setting, total number of particles are about 442k. If you increase the size of fluid block or add additional fluid block, you will see the increment in the number of particles. But you should be aware that the more particles exists, the more time for numerical calculation is needed.
+
+`Output in Image` : If you check the checkbox then in simulation part, rendered image showing on the window will be exported to the file `./Dragon Bath_output_img/` in the `.png` form. Exporting interval can be adjusted by changing the value of `outputInterval` inside the `./data/scenes/dragon_bath.json` . Default value is 40, meaning program will export image every 40 frames.
+
+`Output [.ply] files` : If you check the checkbox then in simulation part, `.ply` files containing the information of each fluid particles position will be exported to `./Dragon Bath_output/` , also including the mesh information of rigid body in `.obj` form. You can use these files, `.ply` , `.obj` , to render it like a real water and real object using **Houdini** or **Blender**.
+
+- - -
+
+### Second Phase (simulation phase)
