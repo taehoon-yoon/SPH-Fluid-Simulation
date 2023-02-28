@@ -12,6 +12,8 @@
 <img src="./image/default.gif">
 [Fig. 1 Default setting]
 
+- - -
+
 ## Program Description
 - Our program consists of two phases. First phase is set-up phase for simulating SPH and second phase is a simulation phase.  
 ### First Phase (set-up phase)
@@ -58,3 +60,32 @@ This is the phase where you can edit the SPH particle system. For example, you c
 - - -
 
 ### Second Phase (simulation phase)
+- After clicking `Start` button in first phase, you will enter second phase which looks like following image.
+
+<img src="./image/png/phase2.png">
+[Fig. 5 Phase2]
+
+This is the phase where actual SPH simulation is performed based on your given set-up in first phase. During the simulation you can adjust viscosity, surface tension parameter in **real-time** and see the corresponding effect instantly. Also you can change the Euler method (forward Euler method) time step to speed up the simulation. 
+
+- Widget Option Description
+
+`Reset Scene` : By clicking this button, you can restart the simulation from the start. It is useful when you've changed the viscosity or surface tension and to see the corresponding effect from the beginning of the simulation.
+
+`Reset View` : By clicking this button, the view(camera) will be reset to the default view.
+
+`Draw object in mesh` : Whether to draw the rigid object in mesh or particles. By default program draws rigid object in mesh but internally numerical computation between fluid and rigid object is based on particlized rigid object. So some behaviors such as fluid around objects or fluid particle sticking to the surface of rigid object is better explained when rigid object is drawn in particles rather than mesh. 
+
+`Euler step time interval` : Can change the time step when performing forward Euler method. Increasing this value will speed up the simulation. But at some situations including very high viscosity, very high surface tension or extreme amount of fluid particles, SPH simulator is likely to experience numerical instability and even computation blow up. This kind of misbehavior indicates that Euler method time step is too large. **So when simulator blows up, try to lower the time step and reset the scene.** Default time step is 0.0004. Actually for the high viscosity and high surface tension, the maximum time step is adjusted to prevent numerical instability. Even though there might be some misbehavior in your particular set-up, so if that happens just lower the time step.
+
+`Viscosity` : Can change the viscosity. Unlike the phase 1, you can slide the bar or just click the point in the slider as you did in phase1. Two behaviors are all acceptable in phase2. Incresaing the viscosity will yiled sticky behavior to the fluid like the honey. Default value is 0.01
+
+`Surface Tension` : Can change the surface tension. Increasing the surface tension yields the tendency for the fluid particles to stick each other to form spherical shape. One thing to notice is that at extremely high surface tension, the behavior of fluid seems unrealistic. Try changing these values to find different behaviors fluid exhibits. Default value is 0.01 
+
+- - -
+
+## Additionals
+
+### High Viscosity Case
+Viscosity set to 0.5 with Euler time step 0.0004
+
+<img src="./image/high-viscosity.gif">
