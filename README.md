@@ -75,7 +75,7 @@ This is the phase where you can edit the SPH particle system. For example, you c
 
 - #### Widget Option Description
 
-`Start` : Start the SPH simulation. (Go to phase 2)
+`Start` : Start the SPH simulation. (Going to phase 2)
 
 `Add Fluid Block` : Add aditional fluid block. By this feature you can simulate two fluid block just as [Fig. 5] and [Fig. 6]. But adding fluid blocks and moving it, possibly can yield GPU memory problem. To avoid this issue I suggest you to first read the :warning: WARNING :warning: part just below and read this [additional section](#two-fluid-block-case-set-up-demonstration) demonstrating set-up of two fluid block configuration.
 
@@ -115,7 +115,7 @@ This is the phase where actual SPH simulation is performed based on your given s
 
 `Draw object in mesh` : Whether to draw the rigid object in mesh or particles. By default program draws rigid object in mesh but internally numerical computation between fluid and rigid object is based on particlized rigid object. So some behaviors such as fluid around objects or fluid particle sticking to the surface of rigid object is better explained when rigid object is drawn in particles rather than mesh. 
 
-`Euler step time interval` : Can change the time step when performing forward Euler method. Increasing this value will speed up the simulation. But at some situations including very high viscosity, very high surface tension or extreme amount of fluid particles, SPH simulator is likely to experience numerical instability and even computation blow up. This kind of misbehavior indicates that Euler method time step is too large. **So when simulator blows up, try to lower the time step and reset the scene.** Default time step is 0.0004. Actually for the high viscosity and high surface tension, the maximum time step is adjusted to prevent numerical instability. Even though there might be some misbehavior in your particular set-up, so if that happens just lower the time step.
+`Euler step time interval` : Can change the time step when performing forward Euler method. Increasing this value will speed up the simulation. But at some situations including very high viscosity, very high surface tension or extreme amount of fluid particles, SPH simulator is likely to experience numerical instability and even computation blow up. This kind of misbehavior indicates that Euler method time step is too large. **So when simulator blows up, try to lower the time step and reset the scene.** Default time step is 0.0004. Actually for the high viscosity and high surface tension, the maximum time step is adjusted to prevent numerical instability. Even though there might be some misbehavior in your particular set-up. So if that happens just lower the time step.
 
 `Viscosity` : Can change the viscosity. Unlike the phase 1, you can slide the bar or just click the point in the slider as you did in phase1. Two behaviors are all acceptable in phase2. Incresaing the viscosity will yiled sticky behavior to the fluid like the honey. Default value is 0.01
 
