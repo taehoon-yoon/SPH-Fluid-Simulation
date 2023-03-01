@@ -12,6 +12,13 @@
 <img src="./image/default.gif">
 [Fig. 1 Default setting]
 
+<img src="./image/default_rendered.gif" width="600">
+[Fig. 2 Default setting rendered using Houdini]
+
+- - -
+
+<img src="./image/two_fluid_block_rendered.gif">
+
 - - -
 
 ## Program Description
@@ -33,7 +40,7 @@ This is the phase where you can edit the SPH particle system. For example, you c
 
 - - -
 
-- Widget Option Description
+- #### Widget Option Description
 
 `Start` : Start the SPH simulation. (Go to phase 2)
 
@@ -67,7 +74,7 @@ This is the phase where you can edit the SPH particle system. For example, you c
 
 This is the phase where actual SPH simulation is performed based on your given set-up in first phase. During the simulation you can adjust viscosity, surface tension parameter in **real-time** and see the corresponding effect instantly. Also you can change the Euler method (forward Euler method) time step to speed up the simulation. 
 
-- Widget Option Description
+- #### Widget Option Description
 
 `Reset Scene` : By clicking this button, you can restart the simulation from the start. It is useful when you've changed the viscosity or surface tension and to see the corresponding effect from the beginning of the simulation.
 
