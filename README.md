@@ -8,7 +8,7 @@
 
 - In this project with the SPH formalism, we will numerically solve fluid equations which governs the movement of fluid flow. Further we will consider several effects governing fluid motion such as viscosity and surface tension. Also handle the issue of Fluid-Rigid coupling.
 
-## Result
+## Results
 - #### Default setting
 
 <img src="./image/default.gif">
@@ -36,6 +36,15 @@
 
 <img src="./image/two_fluid_block_rendered.gif">
 [Fig. 6 Two fluid block setting rendered using Houdini]
+
+- - -
+
+## Key assignment of the program to moving around the scene
+
+- `Drag right mouse button` : Rotating the camera view
+- `w, s` : Zoom in and out
+- `a, d` : moving left and right
+- `q, e` : moving up and down
 
 - - -
 
@@ -119,3 +128,20 @@ This is the phase where actual SPH simulation is performed based on your given s
 
 As in the :warning: WARNING :warning:, you have to click the position in the slider to change the fluid box positions. If you add the fluid box by clicking `Add Fluid Block` then added fluid block will appear in the position same as most recent fluid block. So you have to move the added fluid block to properly render the system at Phase2. 
 ### :warning: As the demonstration gif suggets, when moving additional fluid blocks, first change the `(x0, y0, z0)` value to move the lowest part of fluid block and then adjust `(x1, y1, z1)` to move forward. I am suggesting you this method because if you move added fluid block by increasing `(x1, y1, z1)` first, then **GPU memory allocation** error will likely to occur. (In the gif I move the second fluid block in positive x direction, by first increasing x0 value and then gradually increase x1 value to move forward and repeat this process several times.) :warning:
+
+- - -
+
+## Acknowledgement
+
+Our project is mainly based on this amazing project [SPH Taichi](https://github.com/erizmr/SPH_Taichi). Sending all thanks to [Mingrui Zhang](https://github.com/erizmr) who wrote such a nice code and has provided necessary feedbacks for me. 
+
+## References
+
+[Peter J. Cossins : Smoothed Particle Hydrodynamics](https://arxiv.org/abs/1007.1245v2)
+
+[Markus Becker, Matthias Teschner : Weakly compressible SPH for free surface flows](https://cg.informatik.uni-freiburg.de/publications/2007_SCA_SPH.pdf)
+
+[B. Solenthaler, R. Pajarola : Density Contrast SPH Interfaces](https://people.inf.ethz.ch/~sobarbar/papers/Sol08b/Sol08b.pdf)
+
+[Nadir Akinci, Markus Ihmsen : Versatile Rigid-Fluid Coupling for Incompressible SPH](https://cg.informatik.uni-freiburg.de/publications/2012_SIGGRAPH_rigidFluidCoupling.pdf)
+
