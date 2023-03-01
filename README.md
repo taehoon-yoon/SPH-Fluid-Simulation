@@ -39,6 +39,12 @@
 
 - - -
 
+## Requirements
+
+- taichi
+- trimesh
+- numpy
+
 ## Key assignment of the program to moving around the scene
 
 - `Drag right mouse button` : Rotating the camera view
