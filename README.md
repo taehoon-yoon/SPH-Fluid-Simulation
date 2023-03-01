@@ -4,11 +4,13 @@
 ## Objective
 - **Smoothed-particle hydrodynamics** (SPH) is a computational method used for simulating the mechanics of continuum media, such as solid mechanics and fluid flows. It is a meshfree Lagrangian method (where the co-ordinates move with the fluid), and the resolution of the method can easily be adjusted with respect to variables such as density.[wiki] 
 
-- SPH was originally developed for astrophysical problems. To glance over the basic of SPH, you may find useful to cosult the folowing toy project [Simulating star with SPH](https://github.com/sillsill777/vpython-projects).
+- SPH was originally developed for astrophysical problems. To glance over the basic of SPH, you may find useful to cosult the following toy project [Simulating star with SPH](https://github.com/sillsill777/vpython-projects).
 
 - In this project with the SPH formalism, we will numerically solve fluid equations which governs the movement of fluid flow. Further we will consider several effects governing fluid motion such as viscosity and surface tension. Also handle the issue of Fluid-Rigid coupling.
 
 ## Result
+- #### Default setting
+
 <img src="./image/default.gif">
 [Fig. 1 Default setting]
 
@@ -16,8 +18,24 @@
 [Fig. 2 Default setting rendered using Houdini]
 
 - - -
+ 
+- #### High Viscosity case with viscosity set to 0.5
+
+<img src="./image/high-viscosity.gif">
+[Fig. 3 High Viscosity case]
+
+<img src="./image/high-viscosity_rendered.gif">
+[Fig. 4 High Viscosity case rendered using Houdini]
+
+- - -
+
+- #### Two fluid block case
+
+<img src="./image/two_fluid_block.gif">
+[Fig. 5 Two fluid block setting]
 
 <img src="./image/two_fluid_block_rendered.gif">
+[Fig. 6 Two fluid block setting rendered using Houdini]
 
 - - -
 
@@ -26,17 +44,17 @@
 ### First Phase (set-up phase)
 - If you run the `run_simulation.py`, you will see the following window.
 <img src="./image/png/phase1.png">
-[Fig.2 Phase1]
+[Fig. 7 Phase1]
 
 This is the phase where you can edit the SPH particle system. For example, you can change the width, height and depth of fluid blocks. Further you can add more fluid blocks and decide whether to include static rigid body(dragon sculpture) for simulation.
 
 - Axis description and definition of `(x0, y0, z0)` and `(x1, y1, z1)`
 
 <img src="./image/png/front-view.png" height="300">
-[Fig3. Axis description]
+[Fig. 8 Axis description]
 
 <img src="./image/png/side-view.png" height="300">
-[Fig4. (x0, y0, z0) and (x1, y1, z1)]
+[Fig. 9 (x0, y0, z0) and (x1, y1, z1)]
 
 - - -
 
@@ -44,7 +62,7 @@ This is the phase where you can edit the SPH particle system. For example, you c
 
 `Start` : Start the SPH simulation. (Go to phase 2)
 
-`Add Fluid Block` : Add aditional fluid block. 
+`Add Fluid Block` : Add aditional fluid block. By this feature you can simulate two fluid block just as [Fig. 5] and [Fig. 6]. But adding fluid blocks and moving it, possibly can yield GPU memory problem. To avoid this issue I suggest you to first read the :warning: WARNING :warning: part just below and read this [additional section](#two-fluid-block-case-set-up-demonstration) demonstrating set-up of two fluid block configuration.
 
 `Delete Recent Fluid Block` : Delete most recent fluid block.
 
@@ -52,7 +70,7 @@ This is the phase where you can edit the SPH particle system. For example, you c
 
 `x0_{}, y0_{}, z0_{}` : Fluid block { } start point. Since by default there is only one fluid block, there exists only `x0_1, y0_1, z0_1` . If you add more fluid block by `Add Fluid Block` , then there will be more slider bar to adjust the position of fluid block. Eacn slider range from minimal possible point (`origin` + some margin) to maximal possible point ( `(x1, y1, z1)` - some margin).
 
-`x1_{}, y1_{}, z1_{}` : Fluid block { } end point. You can find the definition of `(x0, y0, z0)` and `(x1, y1, z1)` in the [Fig. 3]. (marked as green) Eacn slider range from minimal possible point ( `(x0, y0, z0)` + some margin) to maximal possible point ( `maxium boundary point` (black line vertex) - some margin).
+`x1_{}, y1_{}, z1_{}` : Fluid block { } end point. You can find the definition of `(x0, y0, z0)` and `(x1, y1, z1)` in the [Fig. 9]. (marked as green) Eacn slider range from minimal possible point ( `(x0, y0, z0)` + some margin) to maximal possible point ( `maxium boundary point` (black line vertex) - some margin).
 
 ### :warning: WARNING :warning: : Due to GPU memory problem, when you want to change the value of `(x0, y0, z0)` and `(x1, y1, z1)` you must **click** the point you want that value to be located not sliding the bar. Please consult the following gif.
 
@@ -70,7 +88,7 @@ This is the phase where you can edit the SPH particle system. For example, you c
 - After clicking `Start` button in first phase, you will enter second phase which looks like following image.
 
 <img src="./image/png/phase2.png">
-[Fig. 5 Phase2]
+[Fig. 10 Phase2]
 
 This is the phase where actual SPH simulation is performed based on your given set-up in first phase. During the simulation you can adjust viscosity, surface tension parameter in **real-time** and see the corresponding effect instantly. Also you can change the Euler method (forward Euler method) time step to speed up the simulation. 
 
@@ -92,7 +110,12 @@ This is the phase where actual SPH simulation is performed based on your given s
 
 ## Additionals
 
-### High Viscosity Case
-Viscosity set to 0.5 with Euler time step 0.0004
+### Two fluid block case set-up demonstration
 
-<img src="./image/high-viscosity.gif">
+- In this part, I demonstrate how to set-up two fluid case which results in [fig. 5] and [Fig. 6]. Following similar step you can even add more fluid blocks if you want, given that your GPU device can handle. Although in our case we intended not to include rigid body in our simulation for clarity, it does not matter you include rigid body or not, regradless of number of fluid blocks.
+
+<img src="./image/two_fluid_block_set-up.gif">
+[Fig. 11 Two fluid block set-up demonstration]
+
+As in the :warning: WARNING :warning:, you have to click the position in the slider to change the fluid box positions. If you add the fluid box by clicking `Add Fluid Block` then added fluid block will appear in the position same as most recent fluid block. So you have to move the added fluid block to properly render the system at Phase2. 
+### :warning: As the demonstration gif suggets, when moving additional fluid blocks, first change the `(x0, y0, z0)` value to move the lowest part of fluid block and then adjust `(x1, y1, z1)` to move forward. I am suggesting you this method because if you move added fluid block by increasing `(x1, y1, z1)` first, then **GPU memory allocation** error will likely to occur. (In the gif I move the second fluid block in positive x direction, by first increasing x0 value and then gradually increase x1 value to move forward and repeat this process several times.) :warning:
