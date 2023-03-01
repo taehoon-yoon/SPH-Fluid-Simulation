@@ -151,3 +151,4 @@ Our project is mainly based on this amazing project [SPH Taichi](https://github.
 
 [Nadir Akinci, Markus Ihmsen : Versatile Rigid-Fluid Coupling for Incompressible SPH](https://cg.informatik.uni-freiburg.de/publications/2012_SIGGRAPH_rigidFluidCoupling.pdf)
 
+[Houdini rendering tutorial](https://www.youtube.com/watch?v=AmnKMmEor9I)
