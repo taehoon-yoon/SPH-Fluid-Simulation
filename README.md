@@ -143,12 +143,12 @@ Our project is mainly based on this amazing project [SPH Taichi](https://github.
 
 ## References
 
-[Peter J. Cossins : Smoothed Particle Hydrodynamics](https://arxiv.org/abs/1007.1245v2)
+- [Peter J. Cossins : Smoothed Particle Hydrodynamics](https://arxiv.org/abs/1007.1245v2)
 
-[Markus Becker, Matthias Teschner : Weakly compressible SPH for free surface flows](https://cg.informatik.uni-freiburg.de/publications/2007_SCA_SPH.pdf)
+- [Markus Becker, Matthias Teschner : Weakly compressible SPH for free surface flows](https://cg.informatik.uni-freiburg.de/publications/2007_SCA_SPH.pdf)
 
-[B. Solenthaler, R. Pajarola : Density Contrast SPH Interfaces](https://people.inf.ethz.ch/~sobarbar/papers/Sol08b/Sol08b.pdf)
+- [B. Solenthaler, R. Pajarola : Density Contrast SPH Interfaces](https://people.inf.ethz.ch/~sobarbar/papers/Sol08b/Sol08b.pdf)
 
-[Nadir Akinci, Markus Ihmsen : Versatile Rigid-Fluid Coupling for Incompressible SPH](https://cg.informatik.uni-freiburg.de/publications/2012_SIGGRAPH_rigidFluidCoupling.pdf)
+- [Nadir Akinci, Markus Ihmsen : Versatile Rigid-Fluid Coupling for Incompressible SPH](https://cg.informatik.uni-freiburg.de/publications/2012_SIGGRAPH_rigidFluidCoupling.pdf)
 
-[Houdini rendering tutorial](https://www.youtube.com/watch?v=AmnKMmEor9I)
+- [Houdini rendering tutorial](https://www.youtube.com/watch?v=AmnKMmEor9I)
